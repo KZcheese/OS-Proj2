@@ -1,5 +1,18 @@
 #include <iostream>
 #include <stdio.h>
+#include <vector>
+#include "process.h"
+void printMemory(std::vector<char> memory){
+  std::cout << "================================" << std::endl;
+  for (int i = 0; i < 256; i++) {
+    if (i % 32 == 0) {
+      std::cout << std::endl;
+    }
+    std::cout << memory[i];
+  }
+  std::cout << std::endl;
+  std::cout << "================================" << std::endl;
+}
 
 void nextFit() {}
 void bestFit() {}
@@ -15,4 +28,5 @@ int main(int argc, char * argv[]) {
     }
     std::cout << "Hello, World!" << std::endl;
     return 0;
+
 }
