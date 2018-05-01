@@ -10,24 +10,55 @@ const int fPerLine = 32;
 
 std::vector<Process> processes;
 
-void printMemory(std::vector<char> memory){
-  std::cout << "================================" << std::endl;
-  for (int i = 0; i < 256; i++) {
-    if (i % 32 == 0) {
-      std::cout << std::endl;
+void printMemory(std::vector<char> memory) {
+    std::cout << "================================" << std::endl;
+    for (int i = 0; i < frames; i++) {
+        if (i % fPerLine == 0) {
+            std::cout << std::endl;
+        }
+        std::cout << memory[i];
     }
-    std::cout << memory[i];
-  }
-  std::cout << std::endl;
-  std::cout << "================================" << std::endl;
+    std::cout << std::endl;
+    std::cout << "================================" << std::endl;
 }
 
 void nextFit() {}
 
 void bestFit() {}
 
-// you can just not use this if you dont want to
-void worstFit() {}
+void worstFit() {
+    int clock = 0;
+    std::vector<char> memory(frames, '.');
+    std::vector<Process> inactive(processes);
+    std::vector<Process> active;
+    std::vector<std::pair<int, int>> gaps;
+    gaps.push_back(std::pair<int, int>(0, frames));
+
+
+    int maxGapSize = 0;
+    int maxGap = -1;
+    while(true) {
+        std::vector<Process> loadBuff;
+        for(Process p: inactive) {
+            if(p.arrTimes[p.burst] <= clock) {
+                loadBuff.push_back(p);
+            }
+
+        }
+        for (std::pair<int, int> gap : gaps) {
+            if (gap.second > maxGapSize) {
+                maxGapSize = gap.second;
+                maxGap = gap.first;
+            }
+            if (maxGapSize >= frames) break;
+        }
+        clock++;
+        break;
+    }
+}
+
+
+}
 
 void nonContiguous() {}
 
