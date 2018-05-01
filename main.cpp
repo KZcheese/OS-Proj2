@@ -57,10 +57,16 @@ void worstFit() {
     }
 }
 
-
+void nonContiguous(std::vector<Process> process) {
+  int ms = 0;
+  int freeSpaces = 256;
+  std::vector<char> memory;
+  for (int i = 0; i < 256; ++i) {
+    memory.push_back('.');
+  }
+  std::cout << "time " << ms << "ms: Simulator started (Non-contiguous)"
+            << std::endl;
 }
-
-void nonContiguous() {}
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
