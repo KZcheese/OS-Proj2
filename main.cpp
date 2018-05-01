@@ -1,19 +1,15 @@
 #include <iostream>
-<<<<<<< HEAD
 #include <cstdio>
 #include "process.h"
 #include <fstream>
 #include <sstream>
-
+#include <vector>
 
 const int frames = 256;
 const int fPerLine = 32;
 
 std::vector<Process> processes;
-=======
-#include <stdio.h>
-#include <vector>
-#include "process.h"
+
 void printMemory(std::vector<char> memory){
   std::cout << "================================" << std::endl;
   for (int i = 0; i < 256; i++) {
@@ -25,7 +21,6 @@ void printMemory(std::vector<char> memory){
   std::cout << std::endl;
   std::cout << "================================" << std::endl;
 }
->>>>>>> f744ca8a2cfd5d4371c38b55ef665e3cdd66d482
 
 void nextFit() {}
 
