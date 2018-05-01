@@ -1,9 +1,12 @@
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include "process.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <string>
+
 
 const int frames = 256;
 const int fPerLine = 32;
@@ -22,6 +25,15 @@ void printMemory(std::vector<char> memory) {
     std::cout << "================================" << std::endl;
 }
 
+void writeMem(std::vector<char> &memory, const Process &p, const bool &add) {
+    char writeChar;
+    if (add) writeChar = p.name;
+    else writeChar = '.';
+    for (int i = 0; i < p.frames; i++)
+        memory[i + p.location] = writeChar;
+
+}
+
 void nextFit() {}
 
 void bestFit() {}
@@ -31,16 +43,27 @@ void worstFit() {
     std::vector<char> memory(frames, '.');
     std::vector<Process> inactive(processes);
     std::vector<Process> active;
-    std::vector<std::pair<int, int>> gaps;
+    std::vector<std::pair<int, int> > gaps;
     gaps.push_back(std::pair<int, int>(0, frames));
 
 
     int maxGapSize = 0;
     int maxGap = -1;
-    while(true) {
+    while (true) {
+        for (int i = 0; i < active.size(); i++) {
+            Process p = active[i];
+            if (p.arrTimes[p.burst] + p.runTimes[p.burst] <= clock) {
+                p.burst++;
+                p.location = -1;
+                active.erase(active.begin() + i--);
+                if (p.burst < p.arrTimes.size() - 1)
+                    inactive.push_back(p);
+            }
+        }
+
         std::vector<Process> loadBuff;
-        for(Process p: inactive) {
-            if(p.arrTimes[p.burst] <= clock) {
+        for (Process p: inactive) {
+            if (p.arrTimes[p.burst] <= clock) {
                 loadBuff.push_back(p);
             }
 
@@ -57,15 +80,15 @@ void worstFit() {
     }
 }
 
-void nonContiguous(std::vector<Process> process) {
-  int ms = 0;
-  int freeSpaces = 256;
-  std::vector<char> memory;
-  for (int i = 0; i < 256; ++i) {
-    memory.push_back('.');
-  }
-  std::cout << "time " << ms << "ms: Simulator started (Non-contiguous)"
-            << std::endl;
+void nonContiguous() {
+    int ms = 0;
+    int freeSpaces = 256;
+    std::vector<char> memory;
+    for (int i = 0; i < 256; ++i) {
+        memory.push_back('.');
+    }
+    std::cout << "time " << ms << "ms: Simulator started (Non-contiguous)"
+              << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -90,12 +113,12 @@ int main(int argc, char *argv[]) {
         std::istringstream split(line);
         split >> id >> size;
         while (split >> frac) {
-            arrTime = stoi(frac.substr(0, frac.find(dash)), nullptr, 10);
-            runTime = stoi(frac.substr(frac.find(dash) + 1, frac.length()), nullptr, 10);
+            std::istringstream(frac.substr(0, frac.find(dash))) >> arrTime;
+            std::istringstream(frac.substr(frac.find(dash) + 1, frac.length())) >> runTime;
             arrTimes.push_back(arrTime);
             runTimes.push_back(runTime);
         }
-        processes.emplace_back(Process(id, size, arrTimes, runTimes));
+        processes.push_back(Process(id, size, arrTimes, runTimes));
     }
     in.close();
     return 0;
