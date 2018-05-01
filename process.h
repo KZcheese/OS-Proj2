@@ -9,7 +9,7 @@ class Process {
   Process(char _name, int _frames, std::vector<int> _arrTimes, std::vector<int> _runTimes);
   char name;
   int frames;
-  std::vector<int> arrivalTimes;
+  std::vector<int> arrTimes;
   std::vector<int> runTimes;
 };
 #endif
