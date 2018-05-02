@@ -13,7 +13,7 @@ public:
     char name;
     int frames;
     int location;
-    int burst;
+    unsigned int burst;
     std::vector<int> arrTimes;
     std::vector<int> runTimes;
     std::vector<int> positions;
