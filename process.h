@@ -16,6 +16,7 @@ public:
     int burst;
     std::vector<int> arrTimes;
     std::vector<int> runTimes;
+    std::vector<int> positions;
 };
 
 #endif
