@@ -571,8 +571,16 @@ int main(int argc, char *argv[]) {
     in.close();
 
     nextFit();
+    std::cout << std::endl;
+
     bestFit();
+    std::cout << std::endl;
+
     worstFit();
+    std::cout << std::endl;
+
     nonContiguous();
+    std::cout << std::endl;
+
     return 0;
 }
