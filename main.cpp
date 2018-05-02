@@ -9,12 +9,11 @@
 #include <climits>
 #include <algorithm>
 
-
 const int frames = 256;
 const int fPerLine = 32;
 const int t_memmove = 1;
 
-std::vector<Process> processes;
+std::vector < Process > processes;
 
 void printMemory(std::vector<char> &memory) {
     std::cout << "================================" << std::endl;
@@ -36,15 +35,12 @@ void printPageTable(std::vector<char> &memory, std::vector<Process> &process) {
             std::cout << process[i].name << ": ";
             for (unsigned int j = 0; j < process[i].positions.size(); j++) {
                 if (counter == process[i].positions.size() - 1) {
-                    std::cout << "[" << counter << "," << process[i].positions[j]
-                              << "]" << std::endl;
+                    std::cout << "[" << counter << "," << process[i].positions[j] << "]" << std::endl;
                     break;
                 } else if (counter % 10 == 9 && counter != 0) {
-                    std::cout << "[" << counter << "," << process[i].positions[j]
-                              << "]" << std::endl;
+                    std::cout << "[" << counter << "," << process[i].positions[j] << "]" << std::endl;
                 } else {
-                    std::cout << "[" << counter << "," << process[i].positions[j]
-                              << "] ";
+                    std::cout << "[" << counter << "," << process[i].positions[j] << "] ";
                 }
                 counter++;
             }
@@ -57,7 +53,9 @@ void nextFit() {}
 
 void bestFit() {}
 
-void writeMem(std::vector<char> &memory, const Process &p, const bool &add) {
+void writeMem(std::vector < char > & memory,
+    const Process & p,
+        const bool & add) {
     char writeChar;
     if (add) writeChar = p.name;
     else writeChar = '.';
@@ -85,6 +83,7 @@ std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &acti
         }
         writeMem(memory, active[i], true);
     }
+
     clock += offset;
 
     std::cout << "time " << clock << "ms: " << "Defragmentation complete (moved " << movedFrames << " frames: ";
@@ -96,10 +95,10 @@ std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &acti
 
 void worstFit() {
     int clock = 0, offset = 0;
-    std::vector<char> memory(frames, '.');
-    std::vector<Process> inactive(processes);
-    std::vector<Process> active;
-    std::vector<std::pair<int, int> > gaps;
+    std::vector < char > memory(frames, '.');
+    std::vector < Process > inactive(processes);
+    std::vector < Process > active;
+    std::vector < std::pair < int, int > > gaps;
 
     int spaceUsed = 0;
     int jumpTime = INT_MAX;
@@ -133,9 +132,10 @@ void worstFit() {
             if (memory[i] == '.') {
                 int j = i + 1;
 
-                for (; j < frames; j++) if (memory[j] != '.') break;
+                for (; j < frames; j++)
+                    if (memory[j] != '.') break;
 
-                gaps.push_back(std::pair<int, int>(i, j - i));
+                gaps.push_back(std::pair < int, int > (i, j - i));
 
                 if (j - i > maxGapSize) {
                     maxGapSize = j - i;
@@ -189,73 +189,68 @@ void worstFit() {
 }
 
 void nonContiguous() {
+    std::vector < char > memory(frames, '.');
+    std::vector < Process > newProcess(processes);
     int ms = 0;
-    int freeSpaces = frames;
-    std::vector<char> memory(frames, '.');
-    std::cout << "time " << ms << "ms: Simulator started (Non-contiguous)"
-              << std::endl;
-    std::vector<Process> newProcess(processes);
+    std::cout << "time " << ms << "ms: Simulator started (Non-contiguous)" << std::endl;
     while (!newProcess.empty()) {
         for (unsigned int i = 0; i < newProcess.size(); i++) {
             if (newProcess[i].runTimes[0] == ms - newProcess[i].arrTimes[0]) {
-                std::cout << "time " << ms << "ms: Process " << newProcess[i].name
-                          << " removed:" << std::endl;
+                std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " removed:" << std::endl;
                 for (int j = 0; j < 256; j++) {
                     if (memory[j] == newProcess[i].name) {
                         memory[j] = '.';
                     }
                 }
+
+                printMemory(memory);
+
                 newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                 newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
-                freeSpaces += newProcess[i].frames;
                 newProcess[i].positions.clear();
-                printMemory(memory);
-                if (newProcess[i].runTimes.empty() ||
-                    newProcess[i].arrTimes.empty()) {
-                    newProcess.erase(newProcess.begin() + i);
-                }
                 printPageTable(memory, newProcess);
+
+                if (newProcess[i].arrTimes.size() == 0) {
+                    newProcess.erase(newProcess.begin() + i);
+                    i--;
+                }
             }
         }
-        for (unsigned int i = 0; i < newProcess.size(); i++) {
-            if (ms == newProcess[i].arrTimes[0]) {
-                std::cout << "time " << ms << "ms: Process "
-                          << newProcess[i].name << " arrived (requires "
-                          << newProcess[i].frames << " frames)"
-                          << std::endl;
 
-                if (freeSpaces < newProcess[i].frames) {
-                    std::cout << "time " << ms << "ms: Cannot place process "
-                              << newProcess[i].name << " -- skipped!"
-                              << std::endl;
-                    newProcess[i].runTimes.erase(
-                            newProcess[i].runTimes.begin());
-                    newProcess[i].arrTimes.erase(
-                            newProcess[i].arrTimes.begin());
-                    if (newProcess[i].runTimes.empty()) {
+        for (unsigned int i = 0; i < newProcess.size(); i++) {
+            if (newProcess[i].arrTimes[0] == ms) {
+                std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " arrived (requires " << newProcess[i].frames << " frames)" << std::endl;
+
+                // Place it naturally, no special cases.
+                int counter = 0;
+                for (unsigned int j = 0; j < memory.size(); j++) {
+                    if (memory[j] == '.')
+                        counter++;
+                }
+
+                if (counter >= newProcess[i].frames) {
+                    std::cout << "time " << ms << "ms: Placed process " << newProcess[i].name << ":" << std::endl;
+                    int remainingFrames = newProcess[i].frames;
+
+                    for (unsigned int j = 0; j < memory.size(); j++) {
+                        if (memory[j] == '.') {
+                            newProcess[i].positions.push_back(j);
+                            memory[j] = newProcess[i].name;
+                            remainingFrames--;
+                            if (remainingFrames == 0)
+                                break;
+                        }
+                    }
+                    printMemory(memory);
+                    printPageTable(memory, newProcess);
+                    std::cout << "time " << ms << "ms: Cannot place process " << newProcess[i].name << " -- skipped!" << std::endl;
+                    newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
+                    newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                    if (newProcess[i].arrTimes.size() == 0) {
                         newProcess.erase(newProcess.begin() + i);
                         i--;
                     }
-                    continue;
                 }
-
-                if (freeSpaces >= newProcess[i].frames) {
-                    int counter = 0;
-                    for (int x = 0; x < frames; ++x) {
-                        if (memory[x] == '.' &&
-                            counter < newProcess[i].frames) {
-                            newProcess[i].positions.push_back(x);
-                            memory[x] = newProcess[i].name;
-                            counter++;
-                        }
-                    }
-                    std::cout << "time " << ms << "ms: Placed process "
-                              << newProcess[i].name << ":" << std::endl;
-                    freeSpaces -= newProcess[i].frames;
-                }
-                printMemory(memory);
-                printPageTable(memory, newProcess);
-                continue;
             }
         }
         ms++;
@@ -263,23 +258,23 @@ void nonContiguous() {
     std::cout << "time " << ms - 1 << "ms: Simulator ended (Non-contiguous)" << std::endl;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char * argv[]) {
     if (argc != 2) {
         fprintf(stderr, "%s\n%s\n", "ERROR: Invalid arguments",
-                "USAGE: ./a.out <input-file> ");
+            "USAGE: ./a.out <input-file> ");
         return EXIT_FAILURE;
     }
 
-    std::ifstream in(argv[1]);
+    std::ifstream in (argv[1]);
     std::string line;
     std::string dash = "/";
 
-    while (getline(in, line)) {
+    while (getline( in , line)) {
         if (line[0] == '#' || line[0] == '\0') continue;
         char id;
         int size, arrTime, runTime;
-        std::vector<int> arrTimes;
-        std::vector<int> runTimes;
+        std::vector < int > arrTimes;
+        std::vector < int > runTimes;
 
         std::string frac;
         std::istringstream split(line);
@@ -291,7 +286,8 @@ int main(int argc, char *argv[]) {
             runTimes.push_back(runTime);
         }
         processes.push_back(Process(id, size, arrTimes, runTimes));
-    }
-    in.close();
+    } in .close();
+
+    nonContiguous();
     return 0;
 }
