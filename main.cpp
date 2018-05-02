@@ -212,7 +212,11 @@ bool compByLoc(Process i, Process j) {
     return i.location < j.location;
 }
 
-std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &active, int &offset, int &clock) {
+bool compByID(Process i, Process j) {
+    return i.name < j.name;
+}
+
+void defrag(std::vector<char> &memory, std::vector<Process> &active, int &offset, int &clock) {
     std::cout << "starting defragmentation" << std::endl;
     std::sort(active.begin(), active.end(), compByLoc);
     std::vector<char> moved;
@@ -224,19 +228,36 @@ std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &acti
             movedFrames += active[i].frames;
             moved.push_back(active[i].name);
             active[i].location = end;
-            end = active[i].location + active[i].frames;
-            offset += t_memmove;
         }
+        end = active[i].location + active[i].frames;
         writeMem(memory, active[i], true);
     }
-
-    clock += offset;
+    offset += movedFrames;
+    clock += movedFrames;
 
     std::cout << "time " << clock << "ms: " << "Defragmentation complete (moved " << movedFrames << " frames: ";
     for (unsigned int i = 0; i < moved.size() - 1; i++) std::cout << moved[i] << ", ";
     std::cout << moved[moved.size() - 1] << ")" << std::endl;
 
-    return std::pair<int, int>(end, frames - end);
+}
+
+std::pair<int, int> generateGaps(std::vector<char> &memory, std::vector<std::pair<int, int> > &gaps) {
+    int maxGapSize = 0;
+    int maxGapLoc = -1;
+    for (int i = 0; i < frames; i++) {
+        if (memory[i] == '.') {
+            int j = i + 1;
+            for (; j < frames; j++)
+                if (memory[j] != '.') break;
+            gaps.push_back(std::pair<int, int>(i, j - i));
+            if (j - i > maxGapSize) {
+                maxGapSize = j - i;
+                maxGapLoc = (int) gaps.size() - 1;
+            }
+            i = j;
+        }
+    }
+    return std::pair<int, int>(maxGapLoc, maxGapSize);
 }
 
 void worstFit() {
@@ -244,109 +265,104 @@ void worstFit() {
     std::vector<char> memory(frames, '.');
     std::vector<Process> inactive(processes);
     std::vector<Process> active;
-    std::vector<std::pair<int, int> > gaps;
 
     int spaceUsed = 0;
     std::cout << "time " << clock << "ms: " << "Simulator started (Contiguous -- Worst-Fit)" << std::endl;
 
     while (!active.empty() || !inactive.empty()) {
         int jumpTime = INT_MAX;
+        std::vector<std::pair<int, int> > gaps;
 
+
+        std::vector<Process> removeBuff;
         for (unsigned int i = 0; i < active.size(); i++) {
             Process p = active[i];
-
             if (p.arrTimes[p.burst] + p.runTimes[p.burst] + offset <= clock) {
-                writeMem(memory, p, false);
+                removeBuff.push_back(p);
                 active.erase(active.begin() + i--);
-                std::cout << "time " << clock << "ms: " << "Process " << p.name << " removed:" << std::endl;
-                printMemory(memory);
-
-                p.burst++;
-                p.location = -1;
-                spaceUsed -= p.frames;
-
-                if (p.burst < p.arrTimes.size()) {
-                    if (jumpTime > p.arrTimes[p.burst] + offset) jumpTime = p.arrTimes[p.burst] + offset;
-                    inactive.push_back(p);
-                }
-            }
-        }
-        int maxGapSize = 0;
-        int maxGapLoc = -1;
-        for (int i = 0; i < frames; i++) {
-            if (memory[i] == '.') {
-                int j = i + 1;
-
-                for (; j < frames; j++)
-                    if (memory[j] != '.') break;
-
-                gaps.push_back(std::pair<int, int>(i, j - i));
-
-                if (j - i > maxGapSize) {
-                    maxGapSize = j - i;
-                    maxGapLoc = (int) gaps.size() - 1;
-                }
-
-                i = j;
             }
         }
 
-//        std::vector<Process> delayed;
+        std::sort(removeBuff.begin(), removeBuff.end(), compByID);
+        for (unsigned int i = 0; i < removeBuff.size(); i++) {
+            Process p = removeBuff[i];
+            writeMem(memory, p, false);
+            std::cout << "time " << clock << "ms: " << "Process " << p.name << " removed:" << std::endl;
+            printMemory(memory);
+
+            p.burst++;
+            p.location = -1;
+            spaceUsed -= p.frames;
+
+            if (p.burst < p.arrTimes.size()) {
+                if (jumpTime > p.arrTimes[p.burst] + offset) jumpTime = p.arrTimes[p.burst] + offset;
+                inactive.push_back(p);
+            }
+        }
+
+        std::pair<int, int> maxGap = generateGaps(memory, gaps);
+        int maxGapLoc = maxGap.first;
+        int maxGapSize = maxGap.second;
+
+        std::vector<Process> addBuff;
         for (unsigned int i = 0; i < inactive.size(); i++) {
             Process p = inactive[i];
             if (p.arrTimes[p.burst] + offset <= clock) {
-                std::cout << "time " << clock << "ms: Process " << p.name << " arrived (requires " << p.frames
-                          << " frames)" << std::endl;
-                if (maxGapSize < p.frames) {
-                    std::cout << "time " << clock << "ms: Cannot place process " << p.name << " -- ";
-                    if (frames - spaceUsed >= p.frames) {
-                        std::pair<int, int> gap = defrag(memory, active, offset, clock);
-                        gaps.push_back(gap);
-                        maxGapLoc = (int) gaps.size() - 1;
-                        maxGapSize = gap.second;
-                        printMemory(memory);
-                    } else {
-                        std::cout << "skipped!" << std::endl;
-                        inactive[i].burst++;
-                        if(p.burst >= p.arrTimes.size()) inactive.erase(inactive.begin() + i--);
-//                        delayed.push_back(p);
-                        continue;
-                    }
-                }
-
-                p.location = gaps[maxGapLoc].first;
-
-                spaceUsed += p.frames;
-                writeMem(memory, p, true);
+                addBuff.push_back(p);
                 inactive.erase(inactive.begin() + i--);
-                active.push_back(p);
-                std::cout << "time " << clock << "ms: Placed process " << p.name << ":" << std::endl;
-                printMemory(memory);
-                if (maxGapSize > p.frames) {
-                    gaps[maxGapLoc].first = p.location + p.frames;
-                    gaps[maxGapLoc].second -= p.frames;
-                } else gaps.erase(gaps.begin() + maxGapLoc);
-
-                maxGapSize = 0;
-                maxGapLoc = -1;
-                for (unsigned int j = 0; j < gaps.size(); j++) {
-                    if (gaps[j].second > maxGapSize) {
-                        maxGapLoc = j;
-                        maxGapSize = gaps[j].second;
-                    }
-                }
             } else if (p.arrTimes[p.burst] + offset < jumpTime) jumpTime = p.arrTimes[p.burst] + offset;
+        }
+
+        std::sort(addBuff.begin(), addBuff.end(), compByID);
+        for (unsigned int i = 0; i < addBuff.size(); i++) {
+            Process p = addBuff[i];
+            std::cout << "time " << clock << "ms: Process " << p.name << " arrived (requires " << p.frames
+                      << " frames)" << std::endl;
+            if (maxGapSize < p.frames) {
+                std::cout << "time " << clock << "ms: Cannot place process " << p.name << " -- ";
+                if (frames - spaceUsed >= p.frames) {
+                    defrag(memory, active, offset, clock);
+                    gaps.clear();
+                    std::pair<int, int> maxGap = generateGaps(memory, gaps);
+                    maxGapLoc = maxGap.first;
+                    maxGapSize = maxGap.second;
+                    printMemory(memory);
+                } else {
+                    std::cout << "skipped!" << std::endl;
+                    p.burst++;
+                    if (p.burst < p.arrTimes.size()) inactive.push_back(p);
+                    continue;
+                }
+            }
+
+            p.location = gaps[maxGapLoc].first;
+            spaceUsed += p.frames;
+            writeMem(memory, p, true);
+            active.push_back(p);
+            std::cout << "time " << clock << "ms: Placed process " << p.name << ":" << std::endl;
+            printMemory(memory);
+
+            if (maxGapSize > p.frames) {
+                gaps[maxGapLoc].first = p.location + p.frames;
+                gaps[maxGapLoc].second -= p.frames;
+            } else gaps.erase(gaps.begin() + maxGapLoc);
+
+            maxGapSize = 0;
+            maxGapLoc = -1;
+            for (unsigned int j = 0; j < gaps.size(); j++) {
+                if (gaps[j].second > maxGapSize) {
+                    maxGapLoc = j;
+                    maxGapSize = gaps[j].second;
+                }
+            }
+
         }
 
         for (unsigned int i = 0; i < active.size(); i++) {
             Process p = active[i];
             if (p.runTimes[p.burst] + offset + p.arrTimes[p.burst] < jumpTime)
-                jumpTime = p.runTimes[p.burst] + offset +
-                           p.arrTimes[p.burst];
+                jumpTime = p.runTimes[p.burst] + offset + p.arrTimes[p.burst];
         }
-//        for (unsigned int i = 0; i < delayed.size(); i++)
-//            if (delayed[i].arrTimes[delayed[i].burst + 1] <= jumpTime)
-//                delayed[i].burst++;
 
         if (!active.empty() || !inactive.empty()) clock = jumpTime;
     }
