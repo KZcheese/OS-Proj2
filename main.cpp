@@ -16,7 +16,7 @@ const int t_memmove = 1;
 
 std::vector<Process> processes;
 
-void printMemory(std::vector<char> memory) {
+void printMemory(std::vector<char> &memory) {
     std::cout << "================================" << std::endl;
     for (int i = 0; i < frames; i++) {
         if (i % fPerLine == 0 && i != 0) {
@@ -28,7 +28,7 @@ void printMemory(std::vector<char> memory) {
     std::cout << "================================" << std::endl;
 }
 
-void printPageTable(std::vector<char> memory, std::vector<Process> process) {
+void printPageTable(std::vector<char> &memory, std::vector<Process> &process) {
     unsigned int counter = 0;
     std::cout << "PAGE TABLE [page,frame]:\n";
     for (unsigned int i = 0; i < process.size(); i++) {
@@ -61,22 +61,37 @@ void writeMem(std::vector<char> &memory, const Process &p, const bool &add) {
     char writeChar;
     if (add) writeChar = p.name;
     else writeChar = '.';
-    for (int i = 0; i < p.frames; i++)
-        memory[i + p.location] = writeChar;
+    for (int i = 0; i < p.frames; i++) memory[i + p.location] = writeChar;
 }
 
 bool compByLoc(Process i, Process j) {
     return i.location < j.location;
 }
 
-std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &active, int &offset) {
+std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &active, int &offset, int &clock) {
+    std::cout << "starting defragmentation" << std::endl;
     std::sort(active.begin(), active.end(), compByLoc);
+    std::vector<char> moved;
+    int movedFrames = 0;
     int end = 0;
-    for (int i = 0; i < active.size(); i++) {
-        active[i].location = end;
-        end = active[i].location + active[i].frames;
+    memory = std::vector<char>(frames, '.');
+    for (unsigned int i = 0; i < active.size(); i++) {
+        if (active[i].location != end) {
+            movedFrames += active[i].frames;
+            moved.push_back(active[i].name);
+            active[i].location = end;
+            end = active[i].location + active[i].frames;
+            offset += t_memmove;
+        }
+        writeMem(memory, active[i], true);
     }
-    return std::pair<int, int>{end, frames - end};
+    clock += offset;
+
+    std::cout << "time " << clock << "ms: " << "Defragmentation complete (moved " << movedFrames << " frames: ";
+    for (unsigned int i = 0; i < moved.size() - 1; i++) std::cout << moved[i] << ", ";
+    std::cout << moved[moved.size() - 1] << ")" << std::endl;
+
+    return std::pair<int, int>(end, frames - end);
 }
 
 void worstFit() {
@@ -88,14 +103,19 @@ void worstFit() {
 
     int spaceUsed = 0;
     int jumpTime = INT_MAX;
+
+    std::cout << "time " << clock << "ms: " << "Simulator started (Contiguous -- Worst-Fit)" << std::endl;
+
     while (!active.empty() && !inactive.empty()) {
 
-        for (int i = 0; i < active.size(); i++) {
+        for (unsigned int i = 0; i < active.size(); i++) {
             Process p = active[i];
 
             if (p.arrTimes[p.burst] + p.runTimes[p.burst] + offset <= clock) {
                 writeMem(memory, p, false);
                 active.erase(active.begin() + i--);
+                std::cout << "time " << clock << "ms: " << "Process " << p.name << " removed:" << std::endl;
+                printMemory(memory);
 
                 p.burst++;
                 p.location = -1;
@@ -119,23 +139,27 @@ void worstFit() {
 
                 if (j - i > maxGapSize) {
                     maxGapSize = j - i;
-                    maxGapLoc = gaps.size() - 1;
+                    maxGapLoc = (int) gaps.size() - 1;
                 }
 
                 i = j;
             }
         }
 
-        for (int i = 0; i < inactive.size(); i++) {
+        for (unsigned int i = 0; i < inactive.size(); i++) {
             Process p = inactive[i];
             if (p.arrTimes[p.burst] + offset <= clock) {
-
+                std::cout << "time " << clock << "ms: Process " << p.name << "arrived (requires " << p.frames
+                          << " frames)" << std::endl;
                 if (maxGapSize < p.frames) {
+                    std::cout << "time " << clock << "ms: Cannot place process " << p.name << " -- ";
                     if (frames - spaceUsed >= p.frames) {
-                        std::pair<int, int> gap = defrag(memory, active, offset);
+                        std::pair<int, int> gap = defrag(memory, active, offset, clock);
                         maxGapLoc = gap.first;
                         maxGapSize = gap.second;
+                        printMemory(memory);
                     } else {
+                        std::cout << "skipped!" << std::endl;
                         inactive[i].burst++;
                         continue;
                     }
@@ -147,7 +171,8 @@ void worstFit() {
                 writeMem(memory, p, true);
                 inactive.erase(inactive.begin() + i--);
                 active.push_back(p);
-
+                std::cout << "time " << clock << "ms: Place process " << p.name << ":" << std::endl;
+                printMemory(memory);
                 if (maxGapSize < p.frames) {
                     gaps[maxGapLoc].first = p.location + p.frames;
                     gaps[maxGapLoc].second -= p.frames;
@@ -159,6 +184,8 @@ void worstFit() {
 
         clock = jumpTime;
     }
+
+    std::cout << "time " << clock << "ms: " << "Simulator ended (Contiguous -- Worst-Fit)" << std::endl;
 }
 
 void nonContiguous() {
