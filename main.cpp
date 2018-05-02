@@ -15,7 +15,7 @@ const int t_memmove = 1;
 
 std::vector < Process > processes;
 
-void printMemory(std::vector<char> &memory) {
+void printMemory(std::vector<char> memory) {
     std::cout << "================================" << std::endl;
     for (int i = 0; i < frames; i++) {
         if (i % fPerLine == 0 && i != 0) {
@@ -27,7 +27,7 @@ void printMemory(std::vector<char> &memory) {
     std::cout << "================================" << std::endl;
 }
 
-void printPageTable(std::vector<char> &memory, std::vector<Process> &process) {
+void printPageTable(std::vector<char> memory, std::vector<Process> process) {
     unsigned int counter = 0;
     std::cout << "PAGE TABLE [page,frame]:\n";
     for (unsigned int i = 0; i < process.size(); i++) {
@@ -242,6 +242,8 @@ void nonContiguous() {
                     }
                     printMemory(memory);
                     printPageTable(memory, newProcess);
+                }
+                else {
                     std::cout << "time " << ms << "ms: Cannot place process " << newProcess[i].name << " -- skipped!" << std::endl;
                     newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                     newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
