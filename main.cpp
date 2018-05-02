@@ -70,7 +70,7 @@ bool compByLoc(Process i, Process j) {
 }
 
 std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &active, int &offset) {
-    std::sort(memory.begin(), memory.end(), compByLoc);
+    std::sort(active.begin(), active.end(), compByLoc);
     int end = 0;
     for (int i = 0; i < active.size(); i++) {
         active[i].location = end;
