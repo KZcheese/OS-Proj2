@@ -196,7 +196,6 @@ void nonContiguous() {
             if (newProcess[i].arrTimes[0] == ms) {
                 std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " arrived (requires " << newProcess[i].frames << " frames)" << std::endl;
 
-                // Place it naturally, no special cases.
                 int counter = 0;
                 for (unsigned int j = 0; j < memory.size(); j++) {
                     if (memory[j] == '.')
