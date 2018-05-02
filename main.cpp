@@ -150,7 +150,7 @@ std::pair<int, int> generateGaps(std::vector<char> &memory, std::vector<std::pai
 void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int &ms, int &nextAvailSpot) {
     nextAvailSpot = 0;
     int movedFrames = 0;
-    
+
     // std::set<char> movedProcesses;
     std::vector<char> movedProcesses;
 
@@ -159,13 +159,13 @@ void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int
             for (unsigned int j = i; j < memory.size(); ++j) {
                 if (memory[j] != '.') {
                     bool notThere = true;
-                    for (unsigned int k = 0; k < movedProcesses.size(); ++k){
-                        if (movedProcesses[k] == memory[j]){
+                    for (unsigned int k = 0; k < movedProcesses.size(); ++k) {
+                        if (movedProcesses[k] == memory[j]) {
                             notThere = false;
                             break;
                         }
                     }
-                    if (notThere){
+                    if (notThere) {
                         movedProcesses.push_back(memory[j]);
                     }
                     movedFrames++;
@@ -575,6 +575,7 @@ int main(int argc, char *argv[]) {
     std::cout << std::endl;
 
     nonContiguous();
-
+    std::cout << std::endl;
+    
     return 0;
 }
