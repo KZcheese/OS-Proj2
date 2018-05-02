@@ -576,6 +576,6 @@ int main(int argc, char *argv[]) {
 
     nonContiguous();
     std::cout << std::endl;
-    
+
     return 0;
 }
