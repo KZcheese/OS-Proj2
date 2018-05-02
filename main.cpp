@@ -78,9 +78,9 @@ std::pair<int, int> defrag(std::vector<char> &memory, std::vector<Process> &acti
             movedFrames += active[i].frames;
             moved.push_back(active[i].name);
             active[i].location = end;
-            end = active[i].location + active[i].frames;
-            offset += t_memmove;
+            offset += t_memmove * active[i].frames;
         }
+        end = active[i].location + active[i].frames;
         writeMem(memory, active[i], true);
     }
 
@@ -162,7 +162,7 @@ void worstFit() {
                     } else {
                         std::cout << "skipped!" << std::endl;
                         inactive[i].burst++;
-                        if(p.burst >= p.arrTimes.size()) inactive.erase(inactive.begin() + i--);
+                        if(inactive[i].burst >= inactive[i].arrTimes.size()) inactive.erase(inactive.begin() + i--);
 //                        delayed.push_back(p);
                         continue;
                     }
