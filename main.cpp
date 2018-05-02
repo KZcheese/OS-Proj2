@@ -151,7 +151,7 @@ std::pair<int, int> generateGaps(std::vector<char> &memory, std::vector<std::pai
 void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int &ms, int &nextAvailSpot) {
     nextAvailSpot = 0;
     int movedFrames = 0;
-    // std::sort(newProcess.begin(), newProcess.end(), compByLoc);
+    
     // std::set<char> movedProcesses;
     std::vector<char> movedProcesses;
 
@@ -210,6 +210,7 @@ void nextFit() {
                 printMemory(memory);
                 newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                 newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                std::sort(newProcess.begin(), newProcess.end(), compByID);
                 if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
             }
         }
@@ -247,6 +248,7 @@ void nextFit() {
                                   << " -- skipped!" << std::endl;
                         newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                         newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                        std::sort(newProcess.begin(), newProcess.end(), compByID);
                         if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
                     }
                 }
