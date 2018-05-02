@@ -287,7 +287,9 @@ int main(int argc, char * argv[]) {
         }
         processes.push_back(Process(id, size, arrTimes, runTimes));
     } in .close();
-
+//    nextFit();
+//    bestFit();
+    worstFit();
     nonContiguous();
     return 0;
 }
