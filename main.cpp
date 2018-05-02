@@ -133,8 +133,7 @@ std::pair<int, int> generateGaps(std::vector<char> &memory, std::vector<std::pai
     for (int i = 0; i < frames; i++) {
         if (memory[i] == '.') {
             int j = i + 1;
-            for (; j < frames; j++)
-                if (memory[j] != '.') break;
+            for (; j < frames; j++) if (memory[j] != '.') break;
             gaps.push_back(std::pair<int, int>(i, j - i));
             if (j - i > maxGapSize) {
                 maxGapSize = j - i;
@@ -159,9 +158,8 @@ void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int
                     movedProcesses.insert(memory[j]);
                     movedFrames++;
 
-                    memory[i] = memory[j];
+                    memory[i++] = memory[j];
                     memory[j] = '.';
-                    i++;
                 }
             }
         }
@@ -305,13 +303,12 @@ void bestFit() {
             int gapLoc = -1;
             int gapSize = 0;
             sort(gaps.begin(), gaps.end(), compGap);
-            for (unsigned int j = 0; j < gaps.size(); j++) {
+            for (unsigned int j = 0; j < gaps.size(); j++)
                 if (gaps[j].second >= p.frames) {
                     gapLoc = j;
                     gapSize = gaps[gapLoc].second;
                     break;
                 }
-            }
 
             if (gapLoc == -1) {
                 std::cout << "time " << clock << "ms: Cannot place process " << p.name << " -- ";
@@ -368,7 +365,6 @@ void worstFit() {
     while (!active.empty() || !inactive.empty()) {
         int jumpTime = INT_MAX;
         std::vector<std::pair<int, int> > gaps;
-
 
         std::vector<Process> removeBuff;
         for (unsigned int i = 0; i < active.size(); i++) {
@@ -445,13 +441,11 @@ void worstFit() {
 
             maxGapSize = 0;
             maxGapLoc = -1;
-            for (unsigned int j = 0; j < gaps.size(); j++) {
+            for (unsigned int j = 0; j < gaps.size(); j++)
                 if (gaps[j].second > maxGapSize) {
                     maxGapLoc = j;
                     maxGapSize = gaps[j].second;
                 }
-            }
-
         }
 
         for (unsigned int i = 0; i < active.size(); i++) {
@@ -475,11 +469,7 @@ void nonContiguous() {
         for (unsigned int i = 0; i < newProcess.size(); i++) {
             if (newProcess[i].runTimes[0] == ms - newProcess[i].arrTimes[0]) {
                 std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " removed:" << std::endl;
-                for (int j = 0; j < frames; ++j) {
-                    if (memory[j] == newProcess[i].name) {
-                        memory[j] = '.';
-                    }
-                }
+                for (int j = 0; j < frames; ++j) if (memory[j] == newProcess[i].name) memory[j] = '.';
 
                 printMemory(memory);
 
@@ -488,10 +478,7 @@ void nonContiguous() {
                 newProcess[i].positions.clear();
                 printPageTable(memory, newProcess);
 
-                if (newProcess[i].arrTimes.size() == 0) {
-                    newProcess.erase(newProcess.begin() + i);
-                    i--;
-                }
+                if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
             }
         }
 
@@ -501,10 +488,8 @@ void nonContiguous() {
                           << newProcess[i].frames << " frames)" << std::endl;
 
                 int counter = 0;
-                for (unsigned int j = 0; j < memory.size(); ++j) {
-                    if (memory[j] == '.')
-                        counter++;
-                }
+                for (unsigned int j = 0; j < memory.size(); ++j)
+                    if (memory[j] == '.') counter++;
 
                 if (counter >= newProcess[i].frames) {
                     std::cout << "time " << ms << "ms: Placed process " << newProcess[i].name << ":" << std::endl;
@@ -515,8 +500,7 @@ void nonContiguous() {
                             newProcess[i].positions.push_back(j);
                             memory[j] = newProcess[i].name;
                             remainingFrames--;
-                            if (remainingFrames == 0)
-                                break;
+                            if (remainingFrames == 0) break;
                         }
                     }
                     printMemory(memory);
@@ -527,10 +511,7 @@ void nonContiguous() {
                               << std::endl;
                     newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                     newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
-                    if (newProcess[i].arrTimes.size() == 0) {
-                        newProcess.erase(newProcess.begin() + i);
-                        i--;
-                    }
+                    if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
                 }
             }
         }
