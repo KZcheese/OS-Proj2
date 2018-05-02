@@ -8,6 +8,7 @@
 #include <string>
 #include <climits>
 #include <algorithm>
+#include <set>
 
 const int frames = 256;
 const int fPerLine = 32;
@@ -17,7 +18,7 @@ std::vector<Process> processes;
 
 void printMemory(std::vector<char> memory) {
     std::cout << "================================" << std::endl;
-    for (int i = 0; i < frames; i++) {
+    for (int i = 0; i < frames; ++i) {
         if (i % fPerLine == 0 && i != 0) {
             std::cout << std::endl;
         }
@@ -30,10 +31,10 @@ void printMemory(std::vector<char> memory) {
 void printPageTable(std::vector<char> memory, std::vector<Process> process) {
     unsigned int counter = 0;
     std::cout << "PAGE TABLE [page,frame]:\n";
-    for (unsigned int i = 0; i < process.size(); i++) {
+    for (unsigned int i = 0; i < process.size(); ++i) {
         if (!process[i].positions.empty()) {
             std::cout << process[i].name << ": ";
-            for (unsigned int j = 0; j < process[i].positions.size(); j++) {
+            for (unsigned int j = 0; j < process[i].positions.size(); ++j) {
                 if (counter == process[i].positions.size() - 1) {
                     std::cout << "[" << counter << "," << process[i].positions[j] << "]" << std::endl;
                     break;
@@ -49,8 +50,153 @@ void printPageTable(std::vector<char> memory, std::vector<Process> process) {
     }
 }
 
-void nextFit() {}
+void findLocation(const std::vector<char>& memory, Process& p, int alg, int nextAvailSpot){
+    //next = 0 
+    if (alg == 0){
+        for (unsigned int i=nextAvailSpot; i<memory.size(); ++i) {
+			if (memory[i] == '.') {
+				bool canPlace = true;
+				for (int j=0; j<p.frames; ++j) {
+					if (memory[i+j] != '.') {
+						canPlace = false;
+						break;
+					}
+				}
+				if (canPlace){
+					p.location = i;
+                    return;
+                }
+			}
+		}
+        
+		for (int i=0; i<nextAvailSpot; ++i) {
+			if (memory[i] == '.') {
+				bool canPlace = true;
+				for (int j=0; j<p.frames; ++j) {
+					if (memory[i+j] != '.') {
+						canPlace = false;
+						break;
+					}
+				}
+				if (canPlace){
+					p.location = i;
+                    return;
+                }
+			}
+		}
+    }
+}
 
+void defragment(std::vector<char>& memory, std::vector<Process>& newProcess, int& ms, int& nextAvailSpot) {
+	nextAvailSpot = 0; 
+	int movedFrames = 0;
+	std::set<char> movedProcesses;
+
+	for (unsigned int i=0; i<memory.size()-1; i++) {
+		if (memory[i] == '.') {
+			for (unsigned int j=i; j<memory.size(); j++) {
+				if (memory[j] != '.') {
+					movedProcesses.insert(memory[j]);
+					movedFrames++;
+
+					memory[i] = memory[j];
+					memory[j] = '.';
+					i++;
+				}
+			}
+		}
+	}
+	ms += (t_memmove*movedFrames);
+
+	for (unsigned int i=0; i < newProcess.size(); i++) {
+        for (unsigned int j = 0; j < newProcess[i].arrTimes.size(); ++ j){
+		    newProcess[i].arrTimes[j] += movedFrames*t_memmove;
+        }
+	}
+
+	std::cout << "time " << ms << "ms: " << "Defragmentation complete (moved " << movedFrames << " frames: ";
+	for (std::set<char>::iterator i = movedProcesses.begin(); i != movedProcesses.end(); i++) {
+		if (i == movedProcesses.begin())
+			std::cout << *i;
+		else
+			std::cout << ", " << *i;
+	}
+	std::cout << ")" << std::endl;
+
+}
+
+void nextFit() {
+    std::vector < char > memory(frames, '.');
+    std::vector < Process > newProcess(processes);
+    int ms = 0;
+    int nextAvailSpot = 0;
+    std::cout << "time " << ms << "ms: Simulator started (Contiguous -- Next-Fit)" << std::endl;
+    while (!newProcess.empty()){
+        for (unsigned int i = 0; i < newProcess.size(); ++i) {
+            if (newProcess[i].runTimes[0] + newProcess[i].arrTimes[0] == ms ){
+                std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " removed:" << std::endl;
+                for (int j = 0; j < frames; ++j) {
+                    if (memory[j] == newProcess[i].name) {
+                        memory[j] = '.';
+                    }
+                }
+
+                printMemory(memory);
+                newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
+                newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                if (newProcess[i].arrTimes.size() == 0) {
+                    newProcess.erase(newProcess.begin() + i);
+                    i--;
+                }
+            }
+        }
+
+        for (unsigned int i=0; i<newProcess.size(); ++i) {
+				if (newProcess[i].arrTimes[0] == ms) {
+					std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " arrived (requires " << newProcess[i].frames << " frames)" << std::endl;
+					findLocation(memory, newProcess[i], 0, nextAvailSpot);
+					if (newProcess[i].location != -1) {
+						std::cout << "time " << ms << "ms: Placed process " << newProcess[i].name << ":" << std::endl;
+                        for (int j=newProcess[i].location; j<newProcess[i].location+newProcess[i].frames; ++j) {
+                                memory[j] = newProcess[i].name;
+                            }
+                        nextAvailSpot = newProcess[i].location+newProcess[i].frames;
+						printMemory(memory);
+					}
+					else {
+                        int counter = 0;
+                        for (unsigned int j = 0; j < memory.size(); ++j) {
+                            if (memory[j] == '.')
+                                counter++;
+                        }
+						if (counter >= newProcess[i].frames) {
+							std::cout << "time " << ms << "ms: Cannot place process " << newProcess[i].name << " -- starting defragmentation" << std::endl;
+							defragment(memory, newProcess, ms, nextAvailSpot);
+							printMemory(memory);
+							findLocation(memory, newProcess[i], 0, nextAvailSpot);
+							std::cout << "time " << ms << "ms: Placed process " << newProcess[i].name << ":" << std::endl;
+							for (int j=newProcess[i].location; j<newProcess[i].location+newProcess[i].frames; ++j) {
+                                memory[j] = newProcess[i].name;
+                            }
+                            nextAvailSpot = newProcess[i].location+newProcess[i].frames;
+							printMemory(memory);
+						}
+						else {
+							std::cout << "time " << ms << "ms: Cannot place process " << newProcess[i].name << " -- skipped!" << std::endl;
+							newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
+                            newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+							if (newProcess[i].arrTimes.size()  == 0) {
+								newProcess.erase(newProcess.begin()+i);
+								i--;
+							}
+						}
+					}
+				}
+			}
+        ms++;
+    }
+    std::cout << "time " << ms-1 << "ms: Simulator ended (Contiguous -- Next-Fit)" << std::endl << std::endl;
+}
 void bestFit() {}
 
 void writeMem(std::vector<char> &memory,
@@ -217,7 +363,7 @@ void nonContiguous() {
         for (unsigned int i = 0; i < newProcess.size(); i++) {
             if (newProcess[i].runTimes[0] == ms - newProcess[i].arrTimes[0]) {
                 std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " removed:" << std::endl;
-                for (int j = 0; j < 256; j++) {
+                for (int j = 0; j < frames; ++j) {
                     if (memory[j] == newProcess[i].name) {
                         memory[j] = '.';
                     }
@@ -237,13 +383,13 @@ void nonContiguous() {
             }
         }
 
-        for (unsigned int i = 0; i < newProcess.size(); i++) {
+        for (unsigned int i = 0; i < newProcess.size(); ++i) {
             if (newProcess[i].arrTimes[0] == ms) {
                 std::cout << "time " << ms << "ms: Process " << newProcess[i].name << " arrived (requires "
                           << newProcess[i].frames << " frames)" << std::endl;
 
                 int counter = 0;
-                for (unsigned int j = 0; j < memory.size(); j++) {
+                for (unsigned int j = 0; j < memory.size(); ++j) {
                     if (memory[j] == '.')
                         counter++;
                 }
@@ -252,7 +398,7 @@ void nonContiguous() {
                     std::cout << "time " << ms << "ms: Placed process " << newProcess[i].name << ":" << std::endl;
                     int remainingFrames = newProcess[i].frames;
 
-                    for (unsigned int j = 0; j < memory.size(); j++) {
+                    for (unsigned int j = 0; j < memory.size(); ++j) {
                         if (memory[j] == '.') {
                             newProcess[i].positions.push_back(j);
                             memory[j] = newProcess[i].name;
@@ -310,9 +456,9 @@ int main(int argc, char *argv[]) {
         processes.push_back(Process(id, size, arrTimes, runTimes));
     }
     in.close();
-//    nextFit();
+   nextFit();
 //    bestFit();
-    worstFit();
+    // worstFit();
 //    nonContiguous();
     return 0;
 }
