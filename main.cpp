@@ -50,6 +50,10 @@ void printPageTable(std::vector<char> memory, std::vector<Process> process) {
     }
 }
 
+bool compByLoc(Process i, Process j) {
+    return i.location < j.location;
+}
+
 void findLocation(const std::vector<char>& memory, Process& p, int alg, int nextAvailSpot){
     //next = 0 
     if (alg == 0){
@@ -90,6 +94,7 @@ void findLocation(const std::vector<char>& memory, Process& p, int alg, int next
 void defragment(std::vector<char>& memory, std::vector<Process>& newProcess, int& ms, int& nextAvailSpot) {
 	nextAvailSpot = 0; 
 	int movedFrames = 0;
+    // std::sort(newProcess.begin(), newProcess.end(), compByLoc);
 	std::set<char> movedProcesses;
 
 	for (unsigned int i=0; i<memory.size()-1; i++) {
@@ -208,9 +213,7 @@ void writeMem(std::vector<char> &memory,
     for (int i = 0; i < p.frames; i++) memory[i + p.location] = writeChar;
 }
 
-bool compByLoc(Process i, Process j) {
-    return i.location < j.location;
-}
+
 
 bool compByID(Process i, Process j) {
     return i.name < j.name;
