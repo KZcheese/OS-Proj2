@@ -1,3 +1,6 @@
+//Danny Li - liy37
+//Kevin Zhan - zhank2
+
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -8,7 +11,6 @@
 #include <string>
 #include <climits>
 #include <algorithm>
-#include <set>
 
 const int frames = 256;
 const int fPerLine = 32;
@@ -148,14 +150,24 @@ std::pair<int, int> generateGaps(std::vector<char> &memory, std::vector<std::pai
 void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int &ms, int &nextAvailSpot) {
     nextAvailSpot = 0;
     int movedFrames = 0;
-    // std::sort(newProcess.begin(), newProcess.end(), compByLoc);
-    std::set<char> movedProcesses;
+    
+    // std::set<char> movedProcesses;
+    std::vector<char> movedProcesses;
 
-    for (unsigned int i = 0; i < memory.size() - 1; i++) {
+    for (unsigned int i = 0; i < memory.size() - 1; ++i) {
         if (memory[i] == '.') {
-            for (unsigned int j = i; j < memory.size(); j++) {
+            for (unsigned int j = i; j < memory.size(); ++j) {
                 if (memory[j] != '.') {
-                    movedProcesses.insert(memory[j]);
+                    bool notThere = true;
+                    for (unsigned int k = 0; k < movedProcesses.size(); ++k){
+                        if (movedProcesses[k] == memory[j]){
+                            notThere = false;
+                            break;
+                        }
+                    }
+                    if (notThere){
+                        movedProcesses.push_back(memory[j]);
+                    }
                     movedFrames++;
 
                     memory[i++] = memory[j];
@@ -172,7 +184,7 @@ void defragment(std::vector<char> &memory, std::vector<Process> &newProcess, int
 
 
     std::cout << "time " << ms << "ms: " << "Defragmentation complete (moved " << movedFrames << " frames: ";
-    for (std::set<char>::iterator i = movedProcesses.begin(); i != movedProcesses.end(); i++) {
+    for (std::vector<char>::iterator i = movedProcesses.begin(); i != movedProcesses.end(); i++) {
         if (i == movedProcesses.begin()) std::cout << *i;
         else std::cout << ", " << *i;
     }
@@ -196,6 +208,7 @@ void nextFit() {
                 printMemory(memory);
                 newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                 newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                std::sort(newProcess.begin(), newProcess.end(), compByID);
                 if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
             }
         }
@@ -233,6 +246,7 @@ void nextFit() {
                                   << " -- skipped!" << std::endl;
                         newProcess[i].runTimes.erase(newProcess[i].runTimes.begin());
                         newProcess[i].arrTimes.erase(newProcess[i].arrTimes.begin());
+                        std::sort(newProcess.begin(), newProcess.end(), compByID);
                         if (newProcess[i].arrTimes.size() == 0) newProcess.erase(newProcess.begin() + i--);
                     }
                 }
@@ -240,7 +254,7 @@ void nextFit() {
         }
         ms++;
     }
-    std::cout << "time " << ms - 1 << "ms: Simulator ended (Contiguous -- Next-Fit)" << std::endl << std::endl;
+    std::cout << "time " << ms - 1 << "ms: Simulator ended (Contiguous -- Next-Fit)" << std::endl;
 }
 
 
@@ -517,7 +531,7 @@ void nonContiguous() {
         }
         ms++;
     }
-    std::cout << "time " << ms - 1 << "ms: Simulator ended (Non-contiguous)" << std::endl;
+    std::cout << "time " << ms - 1 << "ms: Simulator ended (Non-contiguous)";
 }
 
 int main(int argc, char *argv[]) {
